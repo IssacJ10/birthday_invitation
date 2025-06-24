@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You're Invited to a Birthday Party!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Balsamiq+Sans:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden; /* Prevent scrollbars from the balloons */
+        }
+        .font-balsamiq {
+            font-family: 'Balsamiq Sans', cursive;
+        }
+        .balloon {
+            position: absolute;
+            bottom: -150px; /* Start off-screen */
+            width: 80px;
+            height: 100px;
+            border-radius: 50%;
+            animation: fly-up 10s linear infinite;
+            opacity: 0.7;
+        }
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 20px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        @keyframes fly-up {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(-150vh);
+            }
+        }
+        .guest-present {
+            text-decoration: line-through;
+            color: #16a34a; /* green-600 */
+        }
+         .guest-present::after {
+            content: ' [HERE!]';
+            color: #16a34a;
+            font-weight: bold;
+        }
+         #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 2rem;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    
+    <div id="loading-overlay">
+        <p class="font-balsamiq">Unwrapping the invitation...</p>
+        <p class="text-sm mt-2">(Please wait a moment)</p>
+    </div>
+
+    <div class="max-w-xl w-full bg-white rounded-2xl shadow-2xl p-6 md:p-8 relative z-10">
+        
+        <!-- Cake Image -->
+        <div class="text-center -mt-20">
+            <svg class="w-40 h-auto mx-auto" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50,150 h100 v20 h-100 z" fill="#8B4513"/>
+                <path d="M40,130 h120 v20 h-120 z" fill="#F08080"/>
+                <path d="M50,110 h100 v20 h-100 z" fill="#8B4513"/>
+                <path d="M40,90 h120 v20 h-120 z" fill="#ADD8E6"/>
+                <path d="M50,70 h100 v20 h-100 z" fill="#8B4513"/>
+                <path d="M98 50 h4 v20 h-4 z" fill="#FDFD96"/>
+                <path d="M100 30 a10 10 0 1 1 0 20 a10 10 0 1 1 0 -20" fill="orange"/>
+            </svg>
+        </div>
+        
+        <!-- Main Invitation Content -->
+        <div class="text-center mt-4">
+            <h1 class="font-balsamiq text-4xl md:text-5xl text-pink-500">You're Invited!</h1>
+            <p class="text-gray-600 mt-2 text-lg">Come celebrate with us!</p>
+            
+             <div class="text-left space-y-4 text-gray-700 mt-8 border-t-2 border-dashed border-gray-300 pt-6">
+                <p>Join us for a party to celebrate <strong class="text-xl text-blue-600 font-balsamiq">the Birthday Star's</strong> 8th Birthday!</p>
+                <p>Get ready for fun, games, and way too much cake!</p>
+                <p><strong>When:</strong> July 18th @ <strong class="text-xl">[START TIME]</strong></p>
+                <p><strong>Where:</strong> <strong class="text-xl">[YOUR ADDRESS]</strong></p>
+                <p>Please RSVP by <strong class="text-xl">[RSVP DATE]</strong> so we know you're coming!</p>
+            </div>
+        </div>
+
+        <!-- RSVP Slip Section -->
+        <div class="mt-10 pt-6 border-t-4 border-dashed border-gray-300">
+             <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                <h3 class="font-balsamiq text-2xl text-center mb-4 text-gray-700">Let us know if you can make it!</h3>
+                <div id="rsvp-form" class="flex flex-col gap-4">
+                    <input type="text" id="guestNameInput" placeholder="Enter guest's name here" class="w-full bg-white border-2 border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-pink-500 transition text-center">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button onclick="rsvp('accept')" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">I'll be there!</button>
+                        <button onclick="rsvp('decline')" class="w-full bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">Sorry, can't make it</button>
+                    </div>
+                </div>
+                <p id="rsvp-message" class="text-center mt-4 font-bold text-lg"></p>
+            </div>
+        </div>
+        
+        <!-- This entire section is hidden unless you are the host -->
+        <div id="guest-list-section" class="mt-10 pt-8 border-t-2 border-dashed border-gray-300" style="display: none;">
+            <h3 class="font-balsamiq text-2xl text-center mb-4">Party Guest List</h3>
+            <div class="bg-gray-50 p-4 rounded-lg min-h-[100px]">
+                <ul id="guest-list" class="list-none space-y-2">
+                 <li id="guest-list-placeholder" class="italic text-gray-500 list-none">No guests have RSVP'd yet.</li>
+                </ul>
+            </div>
+             <p class="text-sm text-center mt-4 font-bold text-gray-600">Host View: Click a name to check them in.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, setDoc, query, where, getDocs, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- DO NOT EDIT: These are automatically provided in the environment ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'birthday-card-default';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // ---
+
+        // Check for Host Mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const isHost = urlParams.get('host') === 'true';
+
+        let guestList = [];
+
+        // DOM elements
+        const guestNameInput = document.getElementById('guestNameInput');
+        const rsvpMessage = document.getElementById('rsvp-message');
+        const guestListUl = document.getElementById('guest-list');
+        const guestListPlaceholder = document.getElementById('guest-list-placeholder');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const guestListSection = document.getElementById('guest-list-section');
+
+        // Only show the guest list section if the user is the host
+        if(isHost) {
+            guestListSection.style.display = 'block';
+        }
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            setLogLevel('debug');
+
+            const guestsCollectionRef = collection(db, `artifacts/${appId}/public/data/birthday-guests`);
+
+            if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken);
+            } else {
+                await signInAnonymously(auth);
+            }
+
+            onSnapshot(guestsCollectionRef, (snapshot) => {
+                guestList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderGuestList();
+                loadingOverlay.style.display = 'none';
+            }, (error) => {
+                console.error("Error listening to guest list:", error);
+                loadingOverlay.innerText = "Error loading invitation! Please refresh.";
+            });
+
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            loadingOverlay.innerText = "Could not connect! Please refresh the page.";
+        }
+        
+        function renderGuestList() {
+            if (!isHost) return;
+
+            guestListUl.innerHTML = '';
+            const acceptedGuests = guestList.filter(g => g.status === 'accepted');
+
+            if (acceptedGuests.length === 0) {
+                 guestListUl.appendChild(guestListPlaceholder);
+                 guestListPlaceholder.style.display = 'list-item';
+                 return;
+            }
+            guestListPlaceholder.style.display = 'none';
+            
+            acceptedGuests.sort((a, b) => (a.present - b.present) || a.name.localeCompare(b.name));
+
+            acceptedGuests.forEach((guest) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = guest.name;
+                nameSpan.className = 'cursor-pointer hover:font-bold transition-all text-lg';
+                if (guest.present) {
+                    nameSpan.classList.add('guest-present');
+                }
+                nameSpan.onclick = () => toggleCheckIn(guest.id, guest.present);
+                
+                const removeButton = document.createElement('button');
+                removeButton.textContent = '✖';
+                removeButton.className = 'text-red-500 font-bold hover:text-red-700 text-sm ml-4 px-2 rounded';
+                removeButton.title = `Remove ${guest.name}`;
+                removeButton.onclick = () => removeGuest(guest.id);
+
+                li.appendChild(nameSpan);
+                li.appendChild(removeButton);
+                guestListUl.appendChild(li);
+            });
+        }
+        
+        async function toggleCheckIn(guestId, currentStatus) {
+            if (!isHost) return;
+            try {
+                const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestId);
+                await updateDoc(guestDocRef, { present: !currentStatus });
+            } catch(error) {
+                console.error("Error checking in guest:", error);
+                showMessage("Could not check in guest!", "error");
+            }
+        }
+
+        async function removeGuest(guestId) {
+            if (!isHost) return;
+            try {
+                // For a real app, you might want a confirmation dialog here.
+                const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestId);
+                await deleteDoc(guestDocRef);
+                showMessage('Guest removed.', 'info');
+            } catch(error) {
+                console.error("Error removing guest:", error);
+                showMessage("Could not remove guest!", "error");
+            }
+        }
+        
+        window.rsvp = async function(status) {
+            const guestName = guestNameInput.value.trim();
+            if (!guestName) {
+                showMessage('Please enter your name first!', 'error');
+                return;
+            }
+
+            try {
+                const guestsCollectionRef = collection(db, `artifacts/${appId}/public/data/birthday-guests`);
+                const q = query(guestsCollectionRef, where("name_lowercase", "==", guestName.toLowerCase()));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const guestDoc = querySnapshot.docs[0];
+                    const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestDoc.id);
+                    await updateDoc(guestDocRef, {
+                        status: status,
+                        present: status === 'accept' ? (guestDoc.data().present || false) : false
+                    });
+                } else {
+                    await addDoc(guestsCollectionRef, {
+                        name: guestName,
+                        name_lowercase: guestName.toLowerCase(),
+                        status: status,
+                        present: false,
+                        timestamp: new Date()
+                    });
+                }
+
+                if (status === 'accept') {
+                    showMessage(`Great, see you there, ${guestName}!`, 'success');
+                } else {
+                    showMessage(`Sorry you can't make it, ${guestName}!`, 'info');
+                }
+
+            } catch(error) {
+                console.error("Error during RSVP:", error);
+                showMessage("Something went wrong, please try again!", "error");
+            }
+            guestNameInput.value = '';
+        }
+
+        function showMessage(message, type) {
+            rsvpMessage.textContent = message;
+            rsvpMessage.className = 'text-center mt-4 font-bold text-lg'; 
+            if (type === 'success') rsvpMessage.classList.add('text-green-600');
+            else if (type === 'error') rsvpMessage.classList.add('text-red-600');
+            else rsvpMessage.classList.add('text-gray-600');
+        }
+
+        // Balloon Animation
+        function createBalloon() {
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            
+            const colors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            const randomLeft = Math.floor(Math.random() * 100);
+            const randomDuration = Math.random() * 5 + 8; // 8 to 13 seconds
+
+            balloon.style.backgroundColor = randomColor;
+            balloon.style.left = `${randomLeft}vw`;
+            balloon.style.animationDuration = `${randomDuration}s`;
+            
+            document.body.appendChild(balloon);
+
+            // Remove balloon from DOM after animation finishes
+            setTimeout(() => {
+                balloon.remove();
+            }, randomDuration * 1000);
+        }
+
+        // Create a new balloon every second
+        setInterval(createBalloon, 1000);
+
+    </script>
+</body>
+</html>
