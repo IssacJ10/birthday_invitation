@@ -139,14 +139,21 @@
     <script type="module">
         // Firebase SDK imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, query, where, getDocs, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // --- This section now uses secure, environment-provided variables ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'birthday-card-default';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        // ---
+        // --- STEP 1: PASTE YOUR FIREBASE CONFIG OBJECT HERE ---
+        // You get this from the Firebase console (see instructions).
+        const firebaseConfig = {
+           apiKey: "AIzaSyA4yx3yYA1iWAcXRG8BRBELUFWZExiq6KA",
+  authDomain: "birthday-invitation-1b7e3.firebaseapp.com",
+  projectId: "birthday-invitation-1b7e3",
+  storageBucket: "birthday-invitation-1b7e3.firebasestorage.app",
+  messagingSenderId: "242701325452",
+  appId: "1:242701325452:web:2e302b6e3ac5f4418397a9",
+  measurementId: "G-DQKMZZ6E2W"
+        };
+        // --- END OF CONFIG SECTION ---
 
         // Check for Host Mode
         const urlParams = new URLSearchParams(window.location.search);
@@ -170,22 +177,17 @@
         }
 
         try {
-            if (Object.keys(firebaseConfig).length === 0) {
-                 throw new Error("Firebase configuration is not available.");
+            if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_API_KEY")) {
+                throw new Error("Firebase config is missing or is using placeholder values. Please paste your project's config object into the script.");
             }
-
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             const auth = getAuth(app);
             setLogLevel('debug');
 
-            const guestsCollectionRef = collection(db, `artifacts/${appId}/public/data/birthday-guests`);
+            const guestsCollectionRef = collection(db, "birthday-guests");
             
-            if (initialAuthToken) {
-                await signInWithCustomToken(auth, initialAuthToken);
-            } else {
-                await signInAnonymously(auth);
-            }
+            await signInAnonymously(auth);
 
             onSnapshot(guestsCollectionRef, (snapshot) => {
                 guestList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -262,7 +264,7 @@
         async function toggleCheckIn(guestId, currentStatus) {
             if (!isHost) return;
             try {
-                const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestId);
+                const guestDocRef = doc(db, "birthday-guests", guestId);
                 await updateDoc(guestDocRef, { present: !currentStatus });
             } catch(error) {
                 console.error("Error checking in guest:", error);
@@ -273,7 +275,7 @@
         async function removeGuest(guestId) {
             if (!isHost) return;
             try {
-                const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestId);
+                const guestDocRef = doc(db, "birthday-guests", guestId);
                 await deleteDoc(guestDocRef);
                 showMessage('Guest removed.', 'info');
             } catch(error) {
@@ -283,13 +285,13 @@
         }
 
         async function addOrUpdateGuest(guestName, status) {
-            const guestsCollectionRef = collection(db, `artifacts/${appId}/public/data/birthday-guests`);
+            const guestsCollectionRef = collection(db, "birthday-guests");
             const q = query(guestsCollectionRef, where("name_lowercase", "==", guestName.toLowerCase()));
             const querySnapshot = await getDocs(q);
             
             if (!querySnapshot.empty) {
                 const guestDoc = querySnapshot.docs[0];
-                const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestDoc.id);
+                const guestDocRef = doc(db, "birthday-guests", guestDoc.id);
                 await updateDoc(guestDocRef, {
                     status: status,
                     present: status === 'accept' ? (guestDoc.data().present || false) : false
