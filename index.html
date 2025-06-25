@@ -10,7 +10,7 @@
         body {
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            overflow: hidden; /* Prevent scrollbars from the balloons */
+            overflow-x: hidden; /* Allow vertical scroll, prevent horizontal */
         }
         .font-balsamiq {
             font-family: 'Balsamiq Sans', cursive;
@@ -21,8 +21,9 @@
             width: 80px;
             height: 100px;
             border-radius: 50%;
-            animation: fly-up 10s linear infinite;
+            animation: fly-up 12s linear infinite;
             opacity: 0.7;
+            z-index: 0;
         }
         .balloon::after {
             content: '';
@@ -76,7 +77,7 @@
         <p class="text-sm mt-2">(Please wait a moment)</p>
     </div>
 
-    <div class="max-w-xl w-full bg-white rounded-2xl shadow-2xl p-6 md:p-8 relative z-10">
+    <div class="max-w-xl w-full bg-white rounded-2xl shadow-2xl p-6 md:p-8 relative z-10 my-12">
         
         <!-- Cake Image -->
         <div class="text-center -mt-20">
@@ -97,11 +98,11 @@
             <p class="text-gray-600 mt-2 text-lg">Come celebrate with us!</p>
             
              <div class="text-left space-y-4 text-gray-700 mt-8 border-t-2 border-dashed border-gray-300 pt-6">
-                <p>Join us for a party to celebrate <strong class="text-xl text-blue-600 font-balsamiq">the Birthday Star's</strong> 8th Birthday!</p>
+                <p>Join us for a party to celebrate <strong class="text-xl text-blue-600 font-balsamiq">Mathew's</strong> 8th Birthday!</p>
                 <p>Get ready for fun, games, and way too much cake!</p>
-                <p><strong>When:</strong> July 18th @ <strong class="text-xl">[START TIME]</strong></p>
-                <p><strong>Where:</strong> <strong class="text-xl">[YOUR ADDRESS]</strong></p>
-                <p>Please RSVP by <strong class="text-xl">[RSVP DATE]</strong> so we know you're coming!</p>
+                <p><strong>When:</strong> July 12th @ <strong class="text-xl">4pm</strong></p>
+                <p><strong>Where:</strong> <strong class="text-xl">448 Blackbur Drive, Unit 10, Brantford, ON, N3T 0X2</strong></p>
+                <p>Please RSVP by <strong class="text-xl">July 7, 2025</strong> so we know you're coming!</p>
             </div>
         </div>
 
@@ -135,20 +136,27 @@
     <script type="module">
         // Firebase SDK imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, setDoc, query, where, getDocs, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, query, where, getDocs, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // --- DO NOT EDIT: These are automatically provided in the environment ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'birthday-card-default';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        // ---
+        // --- STEP 1: PASTE YOUR FIREBASE CONFIG OBJECT HERE ---
+        // You get this from the Firebase console (see instructions).
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        // --- END OF CONFIG SECTION ---
 
         // Check for Host Mode
         const urlParams = new URLSearchParams(window.location.search);
         const isHost = urlParams.get('host') === 'true';
 
         let guestList = [];
+        let db; // To hold the database instance
 
         // DOM elements
         const guestNameInput = document.getElementById('guestNameInput');
@@ -163,19 +171,19 @@
             guestListSection.style.display = 'block';
         }
 
+        // Initialize Firebase and set up listeners
         try {
+            if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY") {
+                throw new Error("Firebase config is missing. Please paste it into the script.");
+            }
             const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
+            db = getFirestore(app);
             const auth = getAuth(app);
             setLogLevel('debug');
 
-            const guestsCollectionRef = collection(db, `artifacts/${appId}/public/data/birthday-guests`);
-
-            if (initialAuthToken) {
-                await signInWithCustomToken(auth, initialAuthToken);
-            } else {
-                await signInAnonymously(auth);
-            }
+            const guestsCollectionRef = collection(db, "birthday-guests");
+            
+            await signInAnonymously(auth);
 
             onSnapshot(guestsCollectionRef, (snapshot) => {
                 guestList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -188,7 +196,7 @@
 
         } catch (error) {
             console.error("Firebase initialization failed:", error);
-            loadingOverlay.innerText = "Could not connect! Please refresh the page.";
+            loadingOverlay.innerText = error.message;
         }
         
         function renderGuestList() {
@@ -233,7 +241,7 @@
         async function toggleCheckIn(guestId, currentStatus) {
             if (!isHost) return;
             try {
-                const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestId);
+                const guestDocRef = doc(db, "birthday-guests", guestId);
                 await updateDoc(guestDocRef, { present: !currentStatus });
             } catch(error) {
                 console.error("Error checking in guest:", error);
@@ -244,8 +252,7 @@
         async function removeGuest(guestId) {
             if (!isHost) return;
             try {
-                // For a real app, you might want a confirmation dialog here.
-                const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestId);
+                const guestDocRef = doc(db, "birthday-guests", guestId);
                 await deleteDoc(guestDocRef);
                 showMessage('Guest removed.', 'info');
             } catch(error) {
@@ -262,13 +269,13 @@
             }
 
             try {
-                const guestsCollectionRef = collection(db, `artifacts/${appId}/public/data/birthday-guests`);
+                const guestsCollectionRef = collection(db, "birthday-guests");
                 const q = query(guestsCollectionRef, where("name_lowercase", "==", guestName.toLowerCase()));
                 const querySnapshot = await getDocs(q);
                 
                 if (!querySnapshot.empty) {
                     const guestDoc = querySnapshot.docs[0];
-                    const guestDocRef = doc(db, `artifacts/${appId}/public/data/birthday-guests`, guestDoc.id);
+                    const guestDocRef = doc(db, "birthday-guests", guestDoc.id);
                     await updateDoc(guestDocRef, {
                         status: status,
                         present: status === 'accept' ? (guestDoc.data().present || false) : false
@@ -312,22 +319,20 @@
             const colors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
             const randomLeft = Math.floor(Math.random() * 100);
-            const randomDuration = Math.random() * 5 + 8; // 8 to 13 seconds
+            const randomDuration = Math.random() * 8 + 10; // 10 to 18 seconds
 
             balloon.style.backgroundColor = randomColor;
             balloon.style.left = `${randomLeft}vw`;
             balloon.style.animationDuration = `${randomDuration}s`;
             
-            document.body.appendChild(balloon);
+            document.body.insertBefore(balloon, document.body.firstChild);
 
-            // Remove balloon from DOM after animation finishes
             setTimeout(() => {
                 balloon.remove();
             }, randomDuration * 1000);
         }
 
-        // Create a new balloon every second
-        setInterval(createBalloon, 1000);
+        setInterval(createBalloon, 1500);
 
     </script>
 </body>
