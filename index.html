@@ -146,12 +146,12 @@
         // You get this from the Firebase console (see instructions).
         const firebaseConfig = {
            apiKey: "AIzaSyA4yx3yYA1iWAcXRG8BRBELUFWZExiq6KA",
-  authDomain: "birthday-invitation-1b7e3.firebaseapp.com",
-  projectId: "birthday-invitation-1b7e3",
-  storageBucket: "birthday-invitation-1b7e3.firebasestorage.app",
-  messagingSenderId: "242701325452",
-  appId: "1:242701325452:web:2e302b6e3ac5f4418397a9",
-  measurementId: "G-DQKMZZ6E2W"
+           authDomain: "birthday-invitation-1b7e3.firebaseapp.com",
+           projectId: "birthday-invitation-1b7e3",
+           storageBucket: "birthday-invitation-1b7e3.appspot.com",
+           messagingSenderId: "242701325452",
+           appId: "1:242701325452:web:2e302b6e3ac5f4418397a9",
+           measurementId: "G-DQKMZZ6E2W"
         };
         // --- END OF CONFIG SECTION ---
 
@@ -212,7 +212,8 @@
 
             guestListUl.innerHTML = '';
             
-            const respondedGuests = guestList.filter(g => g.status === 'accepted' || g.status === 'declined');
+            // This is the corrected filter logic
+            const respondedGuests = guestList.filter(g => g.status === 'accept' || g.status === 'decline');
             
             if (guestListTitle) {
                 guestListTitle.textContent = `Party Guest List (${respondedGuests.length} responded)`;
@@ -244,7 +245,7 @@
                 removeButton.title = `Remove ${guest.name}`;
                 removeButton.onclick = () => removeGuest(guest.id);
 
-                if (guest.status === 'accepted') {
+                if (guest.status === 'accept') {
                     nameSpan.className = 'cursor-pointer hover:font-bold transition-all text-lg';
                     if (guest.present) {
                         nameSpan.classList.add('guest-present');
