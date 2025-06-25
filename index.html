@@ -102,7 +102,7 @@
              <div class="text-left space-y-4 text-gray-700 mt-8 border-t-2 border-dashed border-gray-300 pt-6">
                 <p>Join us for a party to celebrate <strong class="text-xl text-blue-600 font-balsamiq">Mathew's</strong> 8th Birthday!</p>
                 <p>Get ready for fun, games, and way too much cake!</p>
-                <p><strong>When:</strong> <strong>July 12th </strong> @ 4pm</p>
+                <p><strong>When:</strong> <strong>July 12th </strong> @4pm</p>
                 <p><strong>Where:</strong> Kidtastic Adventures,603 Colborne St E, Brantford, ON N3S 7S8</p>
                 <p><strong>Ph:</strong> 226-978-9347</p>
                 <p>Please RSVP by July 7, 2025 so we know you're coming!</p>
@@ -114,7 +114,7 @@
              <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
                 <h3 class="font-balsamiq text-2xl text-center mb-4 text-gray-700">Let us know if you can make it!</h3>
                 <div id="rsvp-form" class="flex flex-col gap-4">
-                    <input type="text" id="guestNameInput" placeholder="Enter guest's name here" class="w-full bg-white border-2 border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-pink-500 transition text-center">
+                    <input type="text" id="guestNameInput" placeholder="Enter guest name(s), separated by commas" class="w-full bg-white border-2 border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-pink-500 transition text-center">
                     <div class="flex flex-col sm:flex-row gap-4">
                         <button onclick="rsvp('accept')" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">I'll be there!</button>
                         <button onclick="rsvp('decline')" class="w-full bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">Sorry, can't make it</button>
@@ -213,7 +213,6 @@
 
             guestListUl.innerHTML = '';
             
-            // Show all guests who have RSVP'd (accepted or declined)
             const respondedGuests = guestList.filter(g => g.status === 'accepted' || g.status === 'declined');
 
             if (respondedGuests.length === 0) {
@@ -223,9 +222,8 @@
             }
             guestListPlaceholder.style.display = 'none';
             
-            // Sort by status (accepted first), then by name
             respondedGuests.sort((a, b) => {
-                if (a.status < b.status) return -1; // 'accepted' before 'declined'
+                if (a.status < b.status) return -1;
                 if (a.status > b.status) return 1;
                 return a.name.localeCompare(b.name);
             });
@@ -249,7 +247,7 @@
                         nameSpan.classList.add('guest-present');
                     }
                     nameSpan.onclick = () => toggleCheckIn(guest.id, guest.present);
-                } else { // guest.status === 'declined'
+                } else { 
                     nameSpan.className = 'text-gray-400 italic text-lg';
                     nameSpan.textContent += ' [Declined]';
                 }
@@ -282,40 +280,51 @@
                 showMessage("Could not remove guest!", "error");
             }
         }
+
+        async function addOrUpdateGuest(guestName, status) {
+            const guestsCollectionRef = collection(db, "birthday-guests");
+            const q = query(guestsCollectionRef, where("name_lowercase", "==", guestName.toLowerCase()));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const guestDoc = querySnapshot.docs[0];
+                const guestDocRef = doc(db, "birthday-guests", guestDoc.id);
+                await updateDoc(guestDocRef, {
+                    status: status,
+                    present: status === 'accept' ? (guestDoc.data().present || false) : false
+                });
+            } else {
+                await addDoc(guestsCollectionRef, {
+                    name: guestName,
+                    name_lowercase: guestName.toLowerCase(),
+                    status: status,
+                    present: false,
+                    timestamp: new Date()
+                });
+            }
+        }
         
         window.rsvp = async function(status) {
-            const guestName = guestNameInput.value.trim();
-            if (!guestName) {
-                showMessage('Please enter your name first!', 'error');
+            const namesString = guestNameInput.value.trim();
+            if (!namesString) {
+                showMessage("Please enter guest's name(s)!", 'error');
                 return;
             }
 
+            const names = namesString.split(',').map(name => name.trim()).filter(name => name !== '');
+            if (names.length === 0) {
+                showMessage("Please enter valid guest name(s)!", 'error');
+                return;
+            }
+            
             try {
-                const guestsCollectionRef = collection(db, "birthday-guests");
-                const q = query(guestsCollectionRef, where("name_lowercase", "==", guestName.toLowerCase()));
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    const guestDoc = querySnapshot.docs[0];
-                    const guestDocRef = doc(db, "birthday-guests", guestDoc.id);
-                    await updateDoc(guestDocRef, {
-                        status: status,
-                        present: status === 'accept' ? (guestDoc.data().present || false) : false
-                    });
-                } else {
-                    await addDoc(guestsCollectionRef, {
-                        name: guestName,
-                        name_lowercase: guestName.toLowerCase(),
-                        status: status,
-                        present: false,
-                        timestamp: new Date()
-                    });
-                }
+                const rsvpPromises = names.map(name => addOrUpdateGuest(name, status));
+                await Promise.all(rsvpPromises);
 
                 if (status === 'accept') {
-                    showMessage(`Great, see you there, ${guestName}!`, 'success');
+                    showMessage(`Thank you! Your RSVP has been recorded.`, 'success');
                 } else {
-                    showMessage(`Sorry you can't make it, ${guestName}!`, 'info');
+                    showMessage(`Got it. We'll miss you!`, 'info');
                 }
 
             } catch(error) {
