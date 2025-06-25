@@ -102,10 +102,10 @@
              <div class="text-left space-y-4 text-gray-700 mt-8 border-t-2 border-dashed border-gray-300 pt-6">
                 <p>Join us for a party to celebrate <strong class="text-xl text-blue-600 font-balsamiq">Mathew's</strong> 8th Birthday!</p>
                 <p>Get ready for fun, games, and way too much cake!</p>
-                <p><strong>When:</strong> <strong>July 12th </strong> @4pm</p>
-                <p><strong>Where:</strong> Kidtastic Adventures,603 Colborne St E, Brantford, ON N3S 7S8</p>
+                <p><strong>When:</strong> <strong>July 12th </strong> @ 4pm</p>
+                <p><strong>Where:</strong> Kidtastic Adventures, 603 Colborne St E, Brantford, ON N3S 7S8</p>
                 <p><strong>Ph:</strong> 226-978-9347</p>
-                <p>Please RSVP by July 7, 2025 so we know you're coming!</p>
+                <p>Please RSVP by <strong>July 7, 2025</strong> so we know you're coming!</p>
             </div>
         </div>
 
@@ -126,7 +126,7 @@
         
         <!-- This entire section is hidden unless you are the host -->
         <div id="guest-list-section" class="mt-10 pt-8 border-t-2 border-dashed border-gray-300" style="display: none;">
-            <h3 class="font-balsamiq text-2xl text-center mb-4">Party Guest List</h3>
+            <h3 id="guest-list-title" class="font-balsamiq text-2xl text-center mb-4">Party Guest List</h3>
             <div class="bg-gray-50 p-4 rounded-lg min-h-[100px]">
                 <ul id="guest-list" class="list-none space-y-2">
                  <li id="guest-list-placeholder" class="italic text-gray-500 list-none">No guests have RSVP'd yet.</li>
@@ -170,6 +170,7 @@
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingMessage = document.getElementById('loading-message');
         const guestListSection = document.getElementById('guest-list-section');
+        const guestListTitle = document.getElementById('guest-list-title');
 
         // Only show the guest list section if the user is the host
         if(isHost) {
@@ -178,7 +179,7 @@
 
         // Initialize Firebase and set up listeners
         try {
-            if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY") {
+            if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_API_KEY")) {
                 throw new Error("Firebase config is missing or is using placeholder values. Please paste your project's config object into the script.");
             }
             const app = initializeApp(firebaseConfig);
@@ -196,7 +197,7 @@
                 loadingOverlay.style.display = 'none';
             }, (error) => {
                 console.error("Error listening to guest list:", error);
-                loadingMessage.innerText = "Error loading invitation! Please refresh.";
+                loadingMessage.innerText = "Error loading invitation! Check console for details.";
             });
 
         } catch (error) {
@@ -214,6 +215,10 @@
             guestListUl.innerHTML = '';
             
             const respondedGuests = guestList.filter(g => g.status === 'accepted' || g.status === 'declined');
+            
+            if (guestListTitle) {
+                guestListTitle.textContent = `Party Guest List (${respondedGuests.length} responded)`;
+            }
 
             if (respondedGuests.length === 0) {
                  guestListUl.appendChild(guestListPlaceholder);
