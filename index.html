@@ -65,7 +65,9 @@
             align-items: center;
             z-index: 9999;
             color: white;
-            font-size: 2rem;
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 1rem;
             flex-direction: column;
         }
     </style>
@@ -73,8 +75,8 @@
 <body class="flex items-center justify-center min-h-screen p-4">
     
     <div id="loading-overlay">
-        <p class="font-balsamiq">Unwrapping the invitation...</p>
-        <p class="text-sm mt-2">(Please wait a moment)</p>
+        <p class="font-balsamiq text-3xl">Unwrapping the invitation...</p>
+        <p id="loading-message" class="text-lg mt-2">(Please wait a moment)</p>
     </div>
 
     <div class="max-w-xl w-full bg-white rounded-2xl shadow-2xl p-6 md:p-8 relative z-10 my-12">
@@ -101,7 +103,8 @@
                 <p>Join us for a party to celebrate <strong class="text-xl text-blue-600 font-balsamiq">Mathew's</strong> 8th Birthday!</p>
                 <p>Get ready for fun, games, and way too much cake!</p>
                 <p><strong>When:</strong> July 12th @ <strong class="text-xl">4pm</strong></p>
-                <p><strong>Where:</strong> <strong class="text-xl">448 Blackbur Drive, Unit 10, Brantford, ON, N3T 0X2</strong></p>
+                <p><strong>Where:</strong> <strong class="text-xl">Kidtastic Adventures,603 Colborne St E, Brantford, ON N3S 7S8</strong></p>
+                <p><strong>Ph:</strong>226-978-9347</p>
                 <p>Please RSVP by <strong class="text-xl">July 7, 2025</strong> so we know you're coming!</p>
             </div>
         </div>
@@ -129,7 +132,7 @@
                  <li id="guest-list-placeholder" class="italic text-gray-500 list-none">No guests have RSVP'd yet.</li>
                 </ul>
             </div>
-             <p class="text-sm text-center mt-4 font-bold text-gray-600">Host View: Click a name to check them in.</p>
+             <p class="text-sm text-center mt-4 font-bold text-gray-600">Host View: Click an accepted name to check them in.</p>
         </div>
     </div>
 
@@ -149,7 +152,7 @@
           messagingSenderId: "242701325452",
           appId: "1:242701325452:web:2e302b6e3ac5f4418397a9",
           measurementId: "G-DQKMZZ6E2W"
-};
+        };
         // --- END OF CONFIG SECTION ---
 
         // Check for Host Mode
@@ -165,6 +168,7 @@
         const guestListUl = document.getElementById('guest-list');
         const guestListPlaceholder = document.getElementById('guest-list-placeholder');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingMessage = document.getElementById('loading-message');
         const guestListSection = document.getElementById('guest-list-section');
 
         // Only show the guest list section if the user is the host
@@ -175,7 +179,7 @@
         // Initialize Firebase and set up listeners
         try {
             if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY") {
-                throw new Error("Firebase config is missing. Please paste it into the script.");
+                throw new Error("Firebase config is missing or is using placeholder values. Please paste your project's config object into the script.");
             }
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
@@ -192,46 +196,63 @@
                 loadingOverlay.style.display = 'none';
             }, (error) => {
                 console.error("Error listening to guest list:", error);
-                loadingOverlay.innerText = "Error loading invitation! Please refresh.";
+                loadingMessage.innerText = "Error loading invitation! Please refresh.";
             });
 
         } catch (error) {
             console.error("Firebase initialization failed:", error);
-            loadingOverlay.innerText = error.message;
+            if (error.code === 'auth/configuration-not-found') {
+                 loadingMessage.innerHTML = `<strong>Action Required!</strong><br><span class="text-sm">To fix this, go to your Firebase project, click on 'Authentication', go to the 'Sign-in method' tab, and enable the 'Anonymous' provider.</span>`;
+            } else {
+                 loadingMessage.innerText = error.message;
+            }
         }
         
         function renderGuestList() {
             if (!isHost) return;
 
             guestListUl.innerHTML = '';
-            const acceptedGuests = guestList.filter(g => g.status === 'accepted');
+            
+            // Show all guests who have RSVP'd (accepted or declined)
+            const respondedGuests = guestList.filter(g => g.status === 'accepted' || g.status === 'declined');
 
-            if (acceptedGuests.length === 0) {
+            if (respondedGuests.length === 0) {
                  guestListUl.appendChild(guestListPlaceholder);
                  guestListPlaceholder.style.display = 'list-item';
                  return;
             }
             guestListPlaceholder.style.display = 'none';
             
-            acceptedGuests.sort((a, b) => (a.present - b.present) || a.name.localeCompare(b.name));
+            // Sort by status (accepted first), then by name
+            respondedGuests.sort((a, b) => {
+                if (a.status < b.status) return -1; // 'accepted' before 'declined'
+                if (a.status > b.status) return 1;
+                return a.name.localeCompare(b.name);
+            });
 
-            acceptedGuests.forEach((guest) => {
+            respondedGuests.forEach((guest) => {
                 const li = document.createElement('li');
-                li.className = 'flex items-center justify-between';
+                li.className = 'flex items-center justify-between py-1';
                 
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = guest.name;
-                nameSpan.className = 'cursor-pointer hover:font-bold transition-all text-lg';
-                if (guest.present) {
-                    nameSpan.classList.add('guest-present');
-                }
-                nameSpan.onclick = () => toggleCheckIn(guest.id, guest.present);
                 
                 const removeButton = document.createElement('button');
                 removeButton.textContent = '✖';
                 removeButton.className = 'text-red-500 font-bold hover:text-red-700 text-sm ml-4 px-2 rounded';
                 removeButton.title = `Remove ${guest.name}`;
                 removeButton.onclick = () => removeGuest(guest.id);
+
+                if (guest.status === 'accepted') {
+                    nameSpan.className = 'cursor-pointer hover:font-bold transition-all text-lg';
+                    if (guest.present) {
+                        nameSpan.classList.add('guest-present');
+                    }
+                    nameSpan.onclick = () => toggleCheckIn(guest.id, guest.present);
+                } else { // guest.status === 'declined'
+                    nameSpan.className = 'text-gray-400 italic text-lg';
+                    nameSpan.textContent += ' [Declined]';
+                }
 
                 li.appendChild(nameSpan);
                 li.appendChild(removeButton);
